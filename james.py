@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-james.py - Chief CLI.
+james.py - Automating Chief.
 
 USAGE: james.py ENV REF
   ENV - Environment defined in the config file to deploy to.
@@ -95,7 +95,7 @@ def check_ancestry(older, newer):
 
 def yes_no(prompt):
     sys.stdout.write(prompt + ' ')
-    ret = None
+    ret = raw_input('[y/n] ')
     while ret not in ['y', 'n']:
         ret = raw_input('Please choose "y" or "n" [y/n] ')
     return ret == 'y'
@@ -104,9 +104,9 @@ def yes_no(prompt):
 def main():
     environment, local_commit = check_args()
     try:
-        username = config('general', 'username')
+        username = config('general', 'username').strip()
     except (NoSectionError, NoOptionError):
-        username = subprocess.check_output(['whoami'])
+        username = subprocess.check_output(['whoami']).strip()
 
     revision_url = config(environment, 'revision_url', die=True)
     chief_url = config(environment, 'chief_url', die=True)
