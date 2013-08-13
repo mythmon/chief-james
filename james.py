@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-james.py - Automating Chief.
+james.py - Chief CLI.
 
 USAGE: james.py ENV REF
   ENV - Environment defined in the config file to deploy to.
@@ -102,7 +102,7 @@ def yes_no(prompt):
 
 
 def main():
-    environment, local_commit = check_args()
+    environment, commit = check_args()
     try:
         username = config('general', 'username').strip()
     except (NoSectionError, NoOptionError):
@@ -118,26 +118,29 @@ def main():
         chief_url = 'http://' + chief_url
 
     environment_commit = requests.get(revision_url).text.strip()
-    local_commit = git('rev-parse', local_commit).strip()
+    local_commit = git('rev-parse', commit).strip()
 
-    if environment_commit == local_commit:
-        print 'Local and remote are the same, nothing to do.'
-        sys.exit(0)
+    print 'Environment: {0}'.format(environment)
+    print 'Pusihng as : {0}'.format(username)
+    print 'Pushing    : {0} ({1})'.format(commit, local_commit[:8])
+    print 'On server  : {0}'.format(environment_commit[:8])
 
-    if not check_ancestry(environment_commit, local_commit):
-        print ("Remote is not an ancestor of local! "
-               "This probably isn't what you want to do!")
-        do_it_anyways = yes_no('Are you sure you want to continue?')
-        if not do_it_anyways:
-            sys.exit(3)
-        print 'About to push this commit to %s as %s' % (environment, username)
-        git('log', '--format=%h %B', '-n', '1', local_commit, out='print')
+    if environment_commit.startswith(local_commit):
+        print 'Pushing out (again):'
+        git('log', '--oneline', '-n', '1', local_commit, out='print')
+
+    elif not check_ancestry(environment_commit, local_commit):
+        print 'Pushing from different branch:'
+        git('log', '--oneline', '-n', '1', local_commit, out='print')
+
     else:
-        print 'Commits to push as %s:' % username
+        print 'Pushing out:'
         log_spec = environment_commit + '..' + local_commit
-        git('log', '--format=%h %B', log_spec, out='print')
+        git('log', '--oneline', log_spec, out='print')
 
-    if yes_no('Continue?'):
+    print ''
+
+    if yes_no('Proceed?'):
         payload = {
             'who': username,
             'password': password,
@@ -147,10 +150,12 @@ def main():
         for chunk in res.iter_content():
             sys.stdout.write(chunk)
             sys.stdout.flush()
+
         # Chief doesn't finish with a newline. Rude.
         print ''
+
     else:
-        exit(3)
+        sys.exit(1)
 
 
 if __name__ == '__main__':
