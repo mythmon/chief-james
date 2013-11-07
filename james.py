@@ -101,12 +101,37 @@ def yes_no(prompt):
     return ret == 'y'
 
 
+def username():
+    try:
+        return config('general', 'username').strip()
+    except (NoSectionError, NoOptionError):
+        return subprocess.check_output(['whoami']).strip()
+
+
+def webhooks(env, log_spec):
+    if config(env, 'newrelic'):
+        print 'Running New Relic deploy hook...',
+        changelog = git('log', '--pretty=oneline', log_spec)
+        rev = changelog.split('\n')[0].split(' ')[0]
+        data = {
+            'app_name': config('newrelic', 'app_name', die=True),
+            'application_id': config('newrelic', 'application_id', die=True),
+            'description': 'Test chief deploy via james.py',
+            'revision': rev,
+            'changelog': changelog,
+            'user': username(),
+        }
+        url = 'https://rpm.newrelic.com/deployments.xml'
+        data = dict(('deployment[%s]' % k, v) for k, v in data.items())
+        headers = { 'x-api-key':  config('newrelic', 'api_key') }
+
+        res = requests.post(url, data=data, headers=headers)
+        print res.status_code, res.text
+
+        print 'done'
+
 def main():
     environment, commit = check_args()
-    try:
-        username = config('general', 'username').strip()
-    except (NoSectionError, NoOptionError):
-        username = subprocess.check_output(['whoami']).strip()
 
     revision_url = config(environment, 'revision_url', die=True)
     chief_url = config(environment, 'chief_url', die=True)
@@ -121,9 +146,11 @@ def main():
     local_commit = git('rev-parse', commit).strip()
 
     print 'Environment: {0}'.format(environment)
-    print 'Pusihng as : {0}'.format(username)
+    print 'Pushing as : {0}'.format(username())
     print 'Pushing    : {0} ({1})'.format(commit, local_commit[:8])
     print 'On server  : {0}'.format(environment_commit[:8])
+
+    log_spec = environment_commit + '..' + local_commit
 
     if environment_commit.startswith(local_commit):
         print 'Pushing out (again):'
@@ -135,14 +162,13 @@ def main():
 
     else:
         print 'Pushing out:'
-        log_spec = environment_commit + '..' + local_commit
         git('log', '--oneline', log_spec, out='print')
 
     print ''
 
     if yes_no('Proceed?'):
         payload = {
-            'who': username,
+            'who': username(),
             'password': password,
             'ref': local_commit,
         }
@@ -153,6 +179,8 @@ def main():
 
         # Chief doesn't finish with a newline. Rude.
         print ''
+
+        webhooks(environment, log_spec)
 
     else:
         sys.exit(1)
