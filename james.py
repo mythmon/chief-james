@@ -42,6 +42,7 @@ Dependencies: requests
 import os
 import subprocess
 import sys
+import time
 from ConfigParser import ConfigParser, NoOptionError, NoSectionError
 
 import requests
@@ -79,17 +80,6 @@ def usage():
     print 'USAGE: %s ENV REF' % os.path.split(sys.argv[0])[-1]
     print '  ENV - Environment defined in the config file to deploy to.'
     print '  REF - A git reference (like a SHA) to deplot'
-
-
-def check_args():
-    if len(sys.argv) != 3:
-        usage()
-        sys.exit(1)
-
-    environment = sys.argv[1]
-    local_commit = sys.argv[2]
-
-    return environment, local_commit
 
 
 def check_ancestry(older, newer):
@@ -137,8 +127,13 @@ def webhooks(env, log_spec):
 
         print 'done'
 
-def main():
-    environment, commit = check_args()
+
+def main(argv):
+    if len(argv) != 2:
+        usage()
+        return 1
+
+    environment, commit = argv
 
     revision_url = config(environment, 'revision_url', required=True)
     chief_url = config(environment, 'chief_url', required=True)
@@ -179,6 +174,8 @@ def main():
             'password': password,
             'ref': local_commit,
         }
+
+        start_time = time.time()
         res = requests.post(chief_url, data=payload, stream=True)
         for chunk in res.iter_content():
             sys.stdout.write(chunk)
@@ -187,11 +184,15 @@ def main():
         # Chief doesn't finish with a newline. Rude.
         print ''
 
+        end_time = time.time()
+        print 'Total time: {0}'.format(end_time - start_time)
+
         webhooks(environment, log_spec)
 
     else:
-        sys.exit(1)
+        print 'Canceled!'
+        return 1
 
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main(sys.argv[1:]))
