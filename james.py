@@ -56,19 +56,23 @@ def git(*args, **kwargs):
         return subprocess.check_output(args, **kwargs)
 
 
-def config(environment, key, die=False, memo={}):
+def config(environment, key, required=False, memo={}):
     if 'config' not in memo:
         memo['config'] = ConfigParser()
         memo['config'].read('james.ini')
 
     try:
         return memo['config'].get(environment, key)
-    except NoSectionError if die else None:
-        print 'No such environment %s' % environment
-        sys.exit(2)
-    except NoOptionError if die else None:
-        print 'Missing key %s in environment %s' % (key, environment)
-        sys.exit(4)
+    except NoSectionError:
+        if required:
+            print 'No such environment %s' % environment
+            sys.exit(2)
+    except NoOptionError:
+        if required:
+            print 'Missing key %s in environment %s' % (key, environment)
+            sys.exit(4)
+
+    return None
 
 
 def usage():
@@ -102,10 +106,12 @@ def yes_no(prompt):
 
 
 def username():
-    try:
-        return config('general', 'username').strip()
-    except (NoSectionError, NoOptionError):
-        return subprocess.check_output(['whoami']).strip()
+    username = config('general', 'username')
+
+    if username is None:
+        username = subprocess.check_output(['whoami'])
+
+    return username.strip()
 
 
 def webhooks(env, log_spec):
@@ -114,8 +120,9 @@ def webhooks(env, log_spec):
         changelog = git('log', '--pretty=oneline', log_spec)
         rev = changelog.split('\n')[0].split(' ')[0]
         data = {
-            'app_name': config('newrelic', 'app_name', die=True),
-            'application_id': config('newrelic', 'application_id', die=True),
+            'app_name': config('newrelic', 'app_name', required=True),
+            'application_id': config('newrelic', 'application_id',
+                                     required=True),
             'description': 'Test chief deploy via james.py',
             'revision': rev,
             'changelog': changelog,
@@ -123,7 +130,7 @@ def webhooks(env, log_spec):
         }
         url = 'https://rpm.newrelic.com/deployments.xml'
         data = dict(('deployment[%s]' % k, v) for k, v in data.items())
-        headers = { 'x-api-key':  config('newrelic', 'api_key') }
+        headers = {'x-api-key':  config('newrelic', 'api_key', required=True)}
 
         res = requests.post(url, data=data, headers=headers)
         print res.status_code, res.text
@@ -133,9 +140,9 @@ def webhooks(env, log_spec):
 def main():
     environment, commit = check_args()
 
-    revision_url = config(environment, 'revision_url', die=True)
-    chief_url = config(environment, 'chief_url', die=True)
-    password = config(environment, 'password', die=True)
+    revision_url = config(environment, 'revision_url', required=True)
+    chief_url = config(environment, 'chief_url', required=True)
+    password = config(environment, 'password', required=True)
 
     if not revision_url.startswith('http'):
         revision_url = 'http://' + revision_url
