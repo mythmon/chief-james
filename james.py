@@ -40,12 +40,23 @@ Dependencies: requests
 
 
 import os
+import random
+import re
 import subprocess
 import sys
 import time
 from ConfigParser import ConfigParser, NoOptionError, NoSectionError
 
 import requests
+
+
+def get_random_desc():
+    return random.choice([
+        'No bugfixes--must be adding infinite loops.',
+        'No bugfixes--must be rot13ing function names for code security.',
+        'No bugfixes--must be demonstrating our elite push technology.',
+        'No bugfixes--must be testing james.',
+    ])
 
 
 def git(*args, **kwargs):
@@ -104,16 +115,47 @@ def username():
     return username.strip()
 
 
-def webhooks(env, log_spec):
+def extract_bugs(changelog):
+    """Takes output from git log --oneline and extracts bug numbers"""
+    bug_regexp = re.compile(r'\[bug (\d+)\]')
+    bugs = set()
+    for line in changelog:
+        for bug in bug_regexp.findall(line):
+            bugs.add(bug)
+
+    return sorted(list(bugs))
+
+
+def generate_desc(from_commit, to_commit, changelog):
+    # Figure out a good description based on what we're pushing
+    # out.
+    if from_commit.startswith(to_commit):
+        desc = 'Pushing {0} again'.format(to_commit)
+    else:
+        bugs = extract_bugs(changelog.split('\n'))
+        if bugs:
+            bugs = ['bug #{0}'.format(bug) for bug in bugs]
+            desc = 'Fixing: {0}'.format(', '.join(bugs))
+        else:
+            desc = get_random_desc()
+    return desc
+
+
+def webhooks(env, environment_commit, local_commit):
     if config(env, 'newrelic'):
         print 'Running New Relic deploy hook...',
+        log_spec = '{0}..{1}'.format(environment_commit, local_commit)
         changelog = git('log', '--pretty=oneline', log_spec)
+
+        desc = generate_desc(environment_commit, local_commit, changelog)
+
         rev = changelog.split('\n')[0].split(' ')[0]
+
         data = {
             'app_name': config('newrelic', 'app_name', required=True),
             'application_id': config('newrelic', 'application_id',
                                      required=True),
-            'description': 'Test chief deploy via james.py',
+            'description': desc,
             'revision': rev,
             'changelog': changelog,
             'user': username(),
@@ -192,7 +234,7 @@ def main(argv):
         end_time = time.time()
         print 'Total time: {0}'.format(end_time - start_time)
 
-        webhooks(environment, log_spec)
+        webhooks(environment, environment_commit, local_commit)
 
     else:
         print 'Canceled!'
