@@ -176,7 +176,12 @@ def main(argv):
         }
 
         start_time = time.time()
-        res = requests.post(chief_url, data=payload, stream=True)
+        try:
+            res = requests.post(chief_url, data=payload, stream=True)
+        except requests.RequestException:
+            'Error connecting to Chief. Did you connect to the VPN?'
+            return 1
+
         for chunk in res.iter_content():
             sys.stdout.write(chunk)
             sys.stdout.flush()
