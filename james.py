@@ -117,7 +117,7 @@ def username():
 
 def extract_bugs(changelog):
     """Takes output from git log --oneline and extracts bug numbers"""
-    bug_regexp = re.compile(r'\[bug (\d+)\]')
+    bug_regexp = re.compile(r'\bbug (\d+)\b', re.IGNORECASE)
     bugs = set()
     for line in changelog:
         for bug in bug_regexp.findall(line):
