@@ -179,7 +179,7 @@ def main(argv):
         try:
             res = requests.post(chief_url, data=payload, stream=True)
         except requests.RequestException:
-            'Error connecting to Chief. Did you connect to the VPN?'
+            print 'Error connecting to Chief. Did you connect to the VPN?'
             return 1
 
         for chunk in res.iter_content():
