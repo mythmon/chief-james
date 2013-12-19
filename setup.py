@@ -1,4 +1,10 @@
-from distutils.core import setup
+try:
+    from setuptools import setup
+except ImportError:
+    from ez_setup import use_setuptools
+    use_setuptools()
+    from setuptools import setup
+
 
 with open('requirements.txt') as f:
     requirements = [l.strip() for l in f]
