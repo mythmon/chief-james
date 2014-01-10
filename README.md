@@ -10,9 +10,9 @@ pip install git+https://github.com/mythmon/chief-james.git
 USAGE
 =====
 
-james.py ENV REF
-  ENV - Environment defined in the config file to deploy to.
-  REF - A git reference (like a SHA) to deploy.
+`james.py ENV REF`
+* `ENV` - Environment defined in the config file to deploy to.
+* `REF` - A git reference (like a SHA) to deploy.
 
 CONFIG
 ======
