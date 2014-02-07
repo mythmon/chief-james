@@ -10,9 +10,18 @@ pip install git+https://github.com/mythmon/chief-james.git
 USAGE
 =====
 
-`james.py ENV REF`
-* `ENV` - Environment defined in the config file to deploy to.
-* `REF` - A git reference (like a SHA) to deploy.
+```
+usage: james.py [-h] [-g] [-p] ENV [REF]
+
+positional arguments:
+  ENV           Environment defined in the config file to deploy to.
+  REF           A git reference (like a SHA) to deploy (default HEAD)
+
+optional arguments:
+  -h, --help    show this message and exit
+  -g, --github  Open a browser to the Github compare url for the diff.
+  -p, --print   Only print the git log (or Github URL with -g), nothing more.
+```
 
 CONFIG
 ======

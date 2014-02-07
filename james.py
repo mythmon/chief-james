@@ -17,6 +17,7 @@ Example Config:
 
     [general]
     username = bob
+    github = bobloblaw/lawblog
 
     [prod]
     revision_url = http://example.com/media/revision.txt
@@ -39,15 +40,21 @@ Dependencies: requests
 """
 
 
+import argparse
 import os
 import random
 import re
 import subprocess
 import sys
 import time
+import webbrowser
 from ConfigParser import ConfigParser, NoOptionError, NoSectionError
 
 import requests
+
+
+URL_TEMPLATE = 'https://github.com/{repo}/compare/{rev}...{branch}'
+HASH_LEN = 8
 
 
 def get_random_desc():
@@ -88,9 +95,9 @@ def config(environment, key, required=False, memo={}):
 
 
 def usage():
-    print 'USAGE: %s ENV REF' % os.path.split(sys.argv[0])[-1]
+    print 'USAGE: %s ENV [REF]' % os.path.split(sys.argv[0])[-1]
     print '  ENV - Environment defined in the config file to deploy to.'
-    print '  REF - A git reference (like a SHA) to deplot'
+    print '  REF - A git reference (like a SHA) to deploy (default HEAD)'
 
 
 def check_ancestry(older, newer):
@@ -113,6 +120,20 @@ def username():
         username = subprocess.check_output(['whoami'])
 
     return username.strip()
+
+
+def get_environment_commit(environment):
+    revision_url = config(environment, 'revision_url', required=True)
+    if not revision_url.startswith('http'):
+        revision_url = 'http://' + revision_url
+    return requests.get(revision_url).text.strip()
+
+
+def get_compare_url(env_rev, new_rev=None):
+    repo = config('general', 'github', required=True)
+    return URL_TEMPLATE.format(rev=env_rev[:HASH_LEN],
+                               branch=new_rev[:HASH_LEN],
+                               repo=repo)
 
 
 def extract_bugs(changelog):
@@ -170,29 +191,41 @@ def webhooks(env, environment_commit, local_commit):
         print 'done'
 
 
-def main(argv):
-    if len(argv) != 2:
-        usage()
-        return 1
+def main():
+    parser = argparse.ArgumentParser(description='Push code using Chief.')
+    parser.add_argument('env', metavar='ENV',
+                        help='Environment defined in the config file to deploy to.')
+    parser.add_argument('ref', metavar='REF', nargs='?', default='HEAD',
+                        help='A git reference (like a SHA) to deploy (default HEAD)')
+    parser.add_argument('-g', '--github', action='store_true',
+                        help='Open a browser to the Github compare url for the diff.')
+    parser.add_argument('-p', '--print', action='store_true', dest='print_only',
+                        help='Only print the git log (or Github URL with -g), nothing more.')
+    args = parser.parse_args()
 
-    environment, commit = argv
+    environment = args.env
+    commit = args.ref
 
-    revision_url = config(environment, 'revision_url', required=True)
+    environment_commit = get_environment_commit(environment)
+    local_commit = git('rev-parse', commit).strip()
+
+    if args.github:
+        url = get_compare_url(environment_commit, local_commit)
+        print url
+        if not args.print_only:
+            webbrowser.open(url)
+        return 0
+
     chief_url = config(environment, 'chief_url', required=True)
     password = config(environment, 'password', required=True)
 
-    if not revision_url.startswith('http'):
-        revision_url = 'http://' + revision_url
     if not chief_url.startswith('http'):
         chief_url = 'http://' + chief_url
 
-    environment_commit = requests.get(revision_url).text.strip()
-    local_commit = git('rev-parse', commit).strip()
-
     print 'Environment: {0}'.format(environment)
     print 'Pushing as : {0}'.format(username())
-    print 'Pushing    : {0} ({1})'.format(commit, local_commit[:8])
-    print 'On server  : {0}'.format(environment_commit[:8])
+    print 'Pushing    : {0} ({1})'.format(commit, local_commit[:HASH_LEN])
+    print 'On server  : {0}'.format(environment_commit[:HASH_LEN])
 
     log_spec = environment_commit + '..' + local_commit
 
@@ -207,6 +240,9 @@ def main(argv):
     else:
         print 'Pushing out:'
         git('log', '--oneline', log_spec, out='print')
+
+    if args.print_only:
+        return 0
 
     print ''
 
@@ -242,4 +278,4 @@ def main(argv):
 
 
 if __name__ == '__main__':
-    sys.exit(main(sys.argv[1:]))
+    sys.exit(main())
