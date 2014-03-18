@@ -186,7 +186,7 @@ def webhooks(env, environment_commit, local_commit):
         }
         url = 'https://rpm.newrelic.com/deployments.xml'
         data = dict(('deployment[%s]' % k, v) for k, v in data.items())
-        headers = {'x-api-key':  config('newrelic', 'api_key', required=True)}
+        headers = {'x-api-key': config('newrelic', 'api_key', required=True)}
 
         res = requests.post(url, data=data, headers=headers)
         print res.status_code, res.text
@@ -197,13 +197,18 @@ def webhooks(env, environment_commit, local_commit):
 def main():
     parser = argparse.ArgumentParser(description='Push code using Chief.')
     parser.add_argument('env', metavar='ENV',
-                        help='Environment defined in the config file to deploy to.')
+                        help='Environment defined in the config file to '
+                             'deploy to.')
     parser.add_argument('ref', metavar='REF', nargs='?', default='HEAD',
-                        help='A git reference (like a SHA) to deploy (default HEAD)')
+                        help='A git reference (like a SHA) to deploy (default '
+                             'HEAD)')
     parser.add_argument('-g', '--github', action='store_true',
-                        help='Open a browser to the Github compare url for the diff.')
-    parser.add_argument('-p', '--print', action='store_true', dest='print_only',
-                        help='Only print the git log (or Github URL with -g), nothing more.')
+                        help='Open a browser to the Github compare url for '
+                             'the diff.')
+    parser.add_argument('-p', '--print', action='store_true',
+                        dest='print_only',
+                        help='Only print the git log (or Github URL with -g), '
+                             'nothing more.')
     args = parser.parse_args()
 
     environment = args.env
