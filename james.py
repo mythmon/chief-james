@@ -253,6 +253,8 @@ def main():
             'ref': local_commit,
         }
 
+        print ('Logs at: {0}/logs/{1}'.format(chief_url, local_commit))
+
         start_time = time.time()
         try:
             res = requests.post(chief_url, data=payload, stream=True)
