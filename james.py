@@ -60,9 +60,12 @@ HASH_LEN = 8
 def get_random_desc():
     return random.choice([
         'No bugfixes--must be adding infinite loops.',
+        'No bugfixes--must be removing infinite loops.',
         'No bugfixes--must be rot13ing function names for code security.',
+        'No bugfixes--must be unrot13ing function names for code clarity.',
         'No bugfixes--must be demonstrating our elite push technology.',
         'No bugfixes--must be testing james.',
+        'No bugfixes--must be making the blinkenlichten flash.',
     ])
 
 
