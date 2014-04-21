@@ -1,1 +1,4 @@
+pyOpenSSL
+ndg-httpsclient
+pyasn1
 requests==2.0.1
