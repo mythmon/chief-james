@@ -1,4 +1,4 @@
-james.py - Chief CLI.
+james - Chief CLI.
 
 INSTALL
 =======
@@ -11,7 +11,7 @@ USAGE
 =====
 
 ```
-usage: james.py [-h] [-g] [-p] ENV [REF]
+usage: james [-h] [-g] [-p] ENV [REF]
 
 positional arguments:
   ENV           Environment defined in the config file to deploy to.
@@ -49,9 +49,9 @@ chief_url = http://chief.example.com/example.stage
 password = omgsecret
 ```
 
-Then you can use james.py like this:
+Then you can use james like this:
 
-    ./james.py stage fa0594dc16df3be505592b6346412c0a03cfe5bf
+    james stage fa0594dc16df3be505592b6346412c0a03cfe5bf
 
 Answer the questions, and wait a bit, and a deploy will happen! You will
 see the same output that you would if you deployed using the website.
