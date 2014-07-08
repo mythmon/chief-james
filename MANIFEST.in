@@ -1,5 +1,1 @@
-include james.py
-include LICENSE
-include README
-include requirements.txt
-include setup.py
+include README.md

@@ -63,4 +63,3 @@ def test_generate_desc():
 
         eq_(james.generate_desc('b27dde9', 'b27dde9'),
             'Pushing b27dde9 again')
-
