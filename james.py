@@ -48,7 +48,11 @@ import subprocess
 import sys
 import time
 import webbrowser
-from ConfigParser import ConfigParser, NoOptionError, NoSectionError
+
+try:
+    from ConfigParser import ConfigParser, NoOptionError, NoSectionError
+except ImportError:
+    from configparser import ConfigParser, NoOptionError, NoSectionError
 
 import requests
 
@@ -87,20 +91,21 @@ def config(environment, key, required=False, memo={}):
         return memo['config'].get(environment, key)
     except NoSectionError:
         if required:
-            print 'No such environment %s' % environment
+            print('No such environment %s' % environment)
             sys.exit(2)
     except NoOptionError:
         if required:
-            print 'Missing key %s in environment %s' % (key, environment)
+            print('Missing key %s in environment %s' % (key, environment))
             sys.exit(4)
 
     return None
 
 
 def usage():
-    print 'USAGE: %s ENV [REF]' % os.path.split(sys.argv[0])[-1]
-    print '  ENV - Environment defined in the config file to deploy to.'
-    print '  REF - A git reference (like a SHA) to deploy (default HEAD)'
+    print('USAGE: %s ENV [REF]'
+          '  ENV - Environment defined in the config file to deploy to.'
+          '  REF - A git reference (like a SHA) to deploy (default HEAD)' %
+          os.path.split(sys.argv[0])[-1])
 
 
 def check_ancestry(older, newer):
@@ -167,7 +172,7 @@ def generate_desc(from_commit, to_commit, changelog):
 
 def webhooks(env, environment_commit, local_commit):
     if config(env, 'newrelic'):
-        print 'Running New Relic deploy hook...',
+        print('Running New Relic deploy hook...'),
         log_spec = '{0}..{1}'.format(environment_commit, local_commit)
         changelog = git('log', '--pretty=oneline', log_spec)
 
@@ -189,9 +194,9 @@ def webhooks(env, environment_commit, local_commit):
         headers = {'x-api-key': config('newrelic', 'api_key', required=True)}
 
         res = requests.post(url, data=data, headers=headers)
-        print res.status_code, res.text
+        print(res.status_code, res.text)
 
-        print 'done'
+        print('done')
 
 
 def main():
@@ -219,7 +224,7 @@ def main():
 
     if args.github:
         url = get_compare_url(environment_commit, local_commit)
-        print url
+        print(url)
         if not args.print_only:
             webbrowser.open(url)
         return 0
@@ -230,29 +235,29 @@ def main():
     if not chief_url.startswith('http'):
         chief_url = 'http://' + chief_url
 
-    print 'Environment: {0}'.format(environment)
-    print 'Pushing as : {0}'.format(username())
-    print 'Pushing    : {0} ({1})'.format(commit, local_commit[:HASH_LEN])
-    print 'On server  : {0}'.format(environment_commit[:HASH_LEN])
+    print('Environment: {0}'.format(environment))
+    print('Pushing as : {0}'.format(username()))
+    print('Pushing    : {0} ({1})'.format(commit, local_commit[:HASH_LEN]))
+    print('On server  : {0}'.format(environment_commit[:HASH_LEN]))
 
     log_spec = environment_commit + '..' + local_commit
 
     if environment_commit.startswith(local_commit):
-        print 'Pushing out (again):'
+        print('Pushing out (again):')
         git('log', '--oneline', '-n', '1', local_commit, out='print')
 
     elif not check_ancestry(environment_commit, local_commit):
-        print 'Pushing from different branch:'
+        print('Pushing from different branch:')
         git('log', '--oneline', '-n', '1', local_commit, out='print')
 
     else:
-        print 'Pushing out:'
+        print('Pushing out:')
         git('log', '--oneline', log_spec, out='print')
 
     if args.print_only:
         return 0
 
-    print ''
+    print('')
 
     if yes_no('Proceed?'):
         payload = {
@@ -261,13 +266,13 @@ def main():
             'ref': local_commit,
         }
 
-        print ('Logs at: {0}/logs/{1}'.format(chief_url, local_commit))
+        print('Logs at: {0}/logs/{1}'.format(chief_url, local_commit))
 
         start_time = time.time()
         try:
             res = requests.post(chief_url, data=payload, stream=True)
         except requests.RequestException:
-            print 'Error connecting to Chief. Did you connect to the VPN?'
+            print('Error connecting to Chief. Did you connect to the VPN?')
             return 1
 
         for chunk in res.iter_content():
@@ -275,15 +280,15 @@ def main():
             sys.stdout.flush()
 
         # Chief doesn't finish with a newline. Rude.
-        print ''
+        print('')
 
         end_time = time.time()
-        print 'Total time: {0}'.format(end_time - start_time)
+        print('Total time: {0}'.format(end_time - start_time))
 
         webhooks(environment, environment_commit, local_commit)
 
     else:
-        print 'Canceled!'
+        print('Canceled!')
         return 1
 
 
