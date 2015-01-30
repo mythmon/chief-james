@@ -244,15 +244,15 @@ def main():
 
     if environment_commit.startswith(local_commit):
         print('Pushing out (again):')
-        git('log', '--oneline', '-n', '1', local_commit, out='print')
+        git('log', '--graph', '--oneline', '-n', '1', local_commit, out='print')
 
     elif not check_ancestry(environment_commit, local_commit):
         print('Pushing from different branch:')
-        git('log', '--oneline', '-n', '1', local_commit, out='print')
+        git('log', '--graph', '--oneline', '-n', '1', local_commit, out='print')
 
     else:
         print('Pushing out:')
-        git('log', '--oneline', log_spec, out='print')
+        git('log', '--graph', '--oneline', log_spec, out='print')
 
     if args.print_only:
         return 0
@@ -266,7 +266,7 @@ def main():
             'ref': local_commit,
         }
 
-        print('Logs at: {0}/logs/{1}'.format(chief_url, local_commit))
+        print('Logs at: {0}/logs/?C=M;O=D'.format(chief_url))
 
         start_time = time.time()
         try:
