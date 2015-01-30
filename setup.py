@@ -17,6 +17,7 @@ if sys.version_info[:2] < (3,):
 setup(
     name='chief-james',
     version='0.1',
+    description='A script to automate Chief deploys.',
     py_modules=['james'],
     author='Mike Cooper',
     license='MPL 2.0',
