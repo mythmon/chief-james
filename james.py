@@ -47,6 +47,7 @@ import re
 import subprocess
 import sys
 import time
+import traceback
 import webbrowser
 
 try:
@@ -272,6 +273,7 @@ def main():
         try:
             res = requests.post(chief_url, data=payload, stream=True)
         except requests.RequestException:
+            traceback.print_exc()
             print('Error connecting to Chief. Did you connect to the VPN?')
             return 1
 
